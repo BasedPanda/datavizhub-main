@@ -3,7 +3,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const apiEndpoint = 'https://datavizhub.clowderframework.org/api/datasets/66461b63e4b01d098f2777e6/files';
     const apiKey = '21335e14-10d2-4b97-8cdf-e661a4a7eee8';
     const googleFormUrl = 'https://docs.google.com/forms/d/e/1FAIpQLScNi9NpdsSJcEnBvK37ZHSnxC7ocZ2XxNZjkYtoxHWyigsb-A/viewform';
-    const videoTitleFieldId = 'entry.2027306240';
+    
+    // Add form field constants
+    const FORM_FIELDS = {
+        videoTitles: 'entry.1000023',  // Field ID for Videos Requested field
+        requestor: 'entry.1000020',    // Field ID for Your name
+        email: 'entry.1000025',        // Field ID for E-mail
+        phone: 'entry.1000022'         // Field ID for Phone number
+    };
 
     const gallery = document.getElementById('video-gallery');
     const searchInput = document.getElementById('search-input');
@@ -85,16 +92,14 @@ document.addEventListener('DOMContentLoaded', function() {
             };
 
             // Try multiple times to get the thumbnail
-            thumbnailVideo.addEventListener('loadeddata', () => {
-                setTimeout(() => {
-                    // Calculate 20% of the video duration
-                    const twentyPercent = thumbnailVideo.duration * 0.2;
-                    thumbnailVideo.currentTime = twentyPercent;
-                    
-                    setTimeout(() => {
-                        generateThumbnail();
-                    }, 100);
-                }, 100);
+            thumbnailVideo.addEventListener('loadedmetadata', () => {
+                // Calculate the midpoint of the video
+                const midpoint = thumbnailVideo.duration / 2;
+                thumbnailVideo.currentTime = midpoint;
+            });
+
+            thumbnailVideo.addEventListener('seeked', () => {
+                generateThumbnail();
             });
 
         } else if (item.contentType.startsWith('image/')) {
@@ -288,8 +293,13 @@ document.addEventListener('DOMContentLoaded', function() {
             const item = videoData.find(v => v.id === id);
             return item ? item.filename.trim() : '';
         }).filter(title => title).join(', ');
-
-        const formUrl = `${googleFormUrl}?${videoTitleFieldId}=${encodeURIComponent(videoTitles)}`;
+    
+        // Build the URL with all form fields
+        let formUrl = googleFormUrl + '?';
+        
+        // Add video titles
+        formUrl += `${FORM_FIELDS.videoTitles}=${encodeURIComponent(videoTitles)}`;
+        
         window.open(formUrl, '_blank');
     };
 
