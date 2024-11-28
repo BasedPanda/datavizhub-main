@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', function() {
-    const apiEndpoint = 'https://datavizhub.clowderframework.org/api/datasets/66461b63e4b01d098f2777e6/files';
-    //const apiEndpoint = 'https://datavizhub.clowderframework.org/api/datasets/6557a87be4b08520ac408e92/files';
+    const apiEndpoint = 'https://datavizhub.clowderframework.org/api/datasets/66461b63e4b01d098f2777e6/files'; // test viz hub
+    //const apiEndpoint = 'https://datavizhub.clowderframework.org/api/datasets/6557a87be4b08520ac408e92/files'; // Jeff's AVL dataset
     const apiKey = '21335e14-10d2-4b97-8cdf-e661a4a7eee8';
     const googleFormUrl = 'https://docs.google.com/forms/d/e/1FAIpQLScNi9NpdsSJcEnBvK37ZHSnxC7ocZ2XxNZjkYtoxHWyigsb-A/viewform';
     
@@ -25,6 +25,21 @@ document.addEventListener('DOMContentLoaded', function() {
 
     let cart = [];
     let videoData = [];
+    const videoCache = new Map(); // Cache for video thumbnails
+
+    // Lazy loading observer
+    const lazyLoadObserver = new IntersectionObserver((entries, observer) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const container = entry.target;
+                const item = videoData.find(i => i.id === container.dataset.itemId);
+                if (item) {
+                    loadThumbnail(item, container);
+                    observer.unobserve(container);
+                }
+            }
+        });
+    });
 
     logo.addEventListener('click', () => {
         searchInput.value = '';
@@ -43,70 +58,54 @@ document.addEventListener('DOMContentLoaded', function() {
         cartButton.textContent = `Cart (${cart.length})`;
     }
 
-    function createGalleryItem(item) {
-        const galleryItem = document.createElement('div');
-        galleryItem.className = 'gallery-item';
-
+    function loadThumbnail(item, container) {
         const fileId = item.id;
         const fileUrl = `https://datavizhub.clowderframework.org/api/files/${fileId}/blob?key=${apiKey}`;
-        
-        const thumbnailContainer = document.createElement('div');
-        thumbnailContainer.className = 'thumbnail-container';
-
-        const loadingSpinner = document.createElement('div');
-        loadingSpinner.className = 'spinner';
-        thumbnailContainer.appendChild(loadingSpinner);
+        const loadingSpinner = container.querySelector('.spinner');
 
         if (item.contentType.startsWith('video/')) {
-            const previewVideo = document.createElement('video');
-            previewVideo.className = 'preview-video';
-            previewVideo.src = fileUrl;
-            previewVideo.muted = true;
-            previewVideo.loop = true;
-            previewVideo.crossOrigin = "anonymous";
-            previewVideo.playsInline = true;
-            thumbnailContainer.appendChild(previewVideo);
-
-            const thumbnailVideo = document.createElement('video');
-            thumbnailVideo.src = fileUrl;
-            thumbnailVideo.muted = true;
-            thumbnailVideo.crossOrigin = "anonymous";
-            thumbnailVideo.preload = 'metadata';
-            thumbnailVideo.playsInline = true;
-
-            galleryItem.addEventListener('mouseenter', () => {
-                previewVideo.play().catch(e => console.log('Preview playback failed:', e));
-            });
-
-            galleryItem.addEventListener('mouseleave', () => {
-                previewVideo.pause();
-                previewVideo.currentTime = 0;
-            });
-
-            const generateThumbnail = () => {
-                const canvas = document.createElement('canvas');
-                canvas.width = thumbnailVideo.videoWidth;
-                canvas.height = thumbnailVideo.videoHeight;
-                const context = canvas.getContext('2d');
-                context.drawImage(thumbnailVideo, 0, 0, canvas.width, canvas.height);
-                
+            // Check cache first
+            if (videoCache.has(fileId)) {
                 const thumbnail = document.createElement('img');
-                thumbnail.src = canvas.toDataURL('image/jpeg');
+                thumbnail.src = videoCache.get(fileId);
                 thumbnail.alt = item.filename;
                 thumbnail.className = 'thumbnail';
-                thumbnailContainer.appendChild(thumbnail);
+                container.appendChild(thumbnail);
                 loadingSpinner.style.display = 'none';
-                thumbnailVideo.remove();
-            };
+                setupVideoPreview(container, fileUrl);
+                return;
+            }
 
-            thumbnailVideo.addEventListener('loadedmetadata', () => {
-                const midpoint = thumbnailVideo.duration / 2;
-                thumbnailVideo.currentTime = midpoint;
-            });
+            const video = document.createElement('video');
+            video.src = fileUrl;
+            video.muted = true;
+            video.crossOrigin = "anonymous";
+            video.preload = 'metadata';
 
-            thumbnailVideo.addEventListener('seeked', () => {
-                generateThumbnail();
-            });
+            video.addEventListener('loadedmetadata', () => {
+                video.currentTime = video.duration / 2;
+            }, { once: true });
+
+            video.addEventListener('seeked', () => {
+                const canvas = document.createElement('canvas');
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                const context = canvas.getContext('2d');
+                context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                
+                const thumbnailUrl = canvas.toDataURL('image/jpeg');
+                videoCache.set(fileId, thumbnailUrl); // Cache the thumbnail
+
+                const thumbnail = document.createElement('img');
+                thumbnail.src = thumbnailUrl;
+                thumbnail.alt = item.filename;
+                thumbnail.className = 'thumbnail';
+                container.appendChild(thumbnail);
+                loadingSpinner.style.display = 'none';
+                
+                setupVideoPreview(container, fileUrl);
+                video.remove();
+            }, { once: true });
 
         } else if (item.contentType.startsWith('image/')) {
             const thumbnail = document.createElement('img');
@@ -114,14 +113,59 @@ document.addEventListener('DOMContentLoaded', function() {
             thumbnail.alt = item.filename;
             thumbnail.className = 'thumbnail';
             thumbnail.crossOrigin = "anonymous";
+            
             thumbnail.onload = () => {
                 loadingSpinner.style.display = 'none';
             };
+
             thumbnail.onerror = () => {
                 loadingSpinner.style.display = 'none';
                 thumbnail.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect width="100" height="100" fill="%23eee"/><text x="50%" y="50%" font-family="Arial" font-size="14" text-anchor="middle" dy=".3em">Image Error</text></svg>';
             };
-            thumbnailContainer.appendChild(thumbnail);
+
+            container.appendChild(thumbnail);
+        }
+    }
+
+    function setupVideoPreview(container, fileUrl) {
+        const previewVideo = document.createElement('video');
+        previewVideo.className = 'preview-video';
+        previewVideo.src = fileUrl;
+        previewVideo.muted = true;
+        previewVideo.loop = true;
+        previewVideo.crossOrigin = "anonymous";
+        previewVideo.playsInline = true;
+        previewVideo.preload = 'metadata';
+        container.appendChild(previewVideo);
+    }
+
+    function createGalleryItem(item) {
+        const galleryItem = document.createElement('div');
+        galleryItem.className = 'gallery-item';
+
+        const thumbnailContainer = document.createElement('div');
+        thumbnailContainer.className = 'thumbnail-container';
+        thumbnailContainer.dataset.itemId = item.id;
+
+        const loadingSpinner = document.createElement('div');
+        loadingSpinner.className = 'spinner';
+        thumbnailContainer.appendChild(loadingSpinner);
+
+        if (item.contentType.startsWith('video/')) {
+            galleryItem.addEventListener('mouseenter', () => {
+                const previewVideo = thumbnailContainer.querySelector('.preview-video');
+                if (previewVideo) {
+                    previewVideo.play().catch(e => console.log('Preview playback failed:', e));
+                }
+            });
+
+            galleryItem.addEventListener('mouseleave', () => {
+                const previewVideo = thumbnailContainer.querySelector('.preview-video');
+                if (previewVideo) {
+                    previewVideo.pause();
+                    previewVideo.currentTime = 0;
+                }
+            });
         }
 
         const title = document.createElement('h3');
@@ -130,7 +174,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const addToCartBtn = document.createElement('button');
         addToCartBtn.className = 'cart-btn';
         addToCartBtn.textContent = 'Add to Cart';
-        addToCartBtn.dataset.id = item.id;  // Add data attribute for identification
+        addToCartBtn.dataset.id = item.id;
         
         if (cart.includes(item.id)) {
             addToCartBtn.classList.add('in-cart');
@@ -158,6 +202,8 @@ document.addEventListener('DOMContentLoaded', function() {
         galleryItem.addEventListener('click', () => {
             modal.style.display = 'block';
             document.getElementById('video-title').textContent = item.filename;
+            
+            const fileUrl = `https://datavizhub.clowderframework.org/api/files/${item.id}/blob?key=${apiKey}`;
             
             if (item.contentType.startsWith('video/')) {
                 modalVideo.style.display = 'block';
@@ -188,6 +234,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 modalImage.src = fileUrl;
             }
         });
+
+        // Observe for lazy loading
+        lazyLoadObserver.observe(thumbnailContainer);
 
         return galleryItem;
     }
