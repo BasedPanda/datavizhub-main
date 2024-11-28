@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', function() {
     const apiEndpoint = 'https://datavizhub.clowderframework.org/api/datasets/66461b63e4b01d098f2777e6/files'; // test viz hub
-    //const apiEndpoint = 'https://datavizhub.clowderframework.org/api/datasets/66461b63e4b01d098f2777e6/files'; // Jeff's dataset
+    //const apiEndpoint = 'https://datavizhub.clowderframework.org/api/datasets/6557a87be4b08520ac408e92/files'; // Jeff's dataset
     const apiKey = '21335e14-10d2-4b97-8cdf-e661a4a7eee8';
     const googleFormUrl = 'https://docs.google.com/forms/d/e/1FAIpQLScNi9NpdsSJcEnBvK37ZHSnxC7ocZ2XxNZjkYtoxHWyigsb-A/viewform';
     
@@ -323,10 +323,34 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+    // async function fetchData() {
+    //     loadingIndicator.style.display = 'block';
+    //     errorMessage.style.display = 'none';
+
+    //     try {
+    //         const response = await fetch(apiEndpoint, fetchOptions);
+    //         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            
+    //         videoData = await response.json();
+    //         gallery.innerHTML = '';
+            
+    //         for (const item of videoData) {
+    //             const galleryItem = await createGalleryItem(item);
+    //             gallery.appendChild(galleryItem);
+    //         }
+    //     } catch (error) {
+    //         console.error('Error:', error);
+    //         errorMessage.textContent = error.message;
+    //         errorMessage.style.display = 'block';
+    //     } finally {
+    //         loadingIndicator.style.display = 'none';
+    //     }
+    // }
+
     async function fetchData() {
         loadingIndicator.style.display = 'block';
         errorMessage.style.display = 'none';
-
+    
         try {
             const response = await fetch(apiEndpoint, fetchOptions);
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
@@ -334,10 +358,14 @@ document.addEventListener('DOMContentLoaded', function() {
             videoData = await response.json();
             gallery.innerHTML = '';
             
-            for (const item of videoData) {
-                const galleryItem = await createGalleryItem(item);
-                gallery.appendChild(galleryItem);
-            }
+            // Create all gallery items in parallel
+            const galleryItems = await Promise.all(
+                videoData.map(item => createGalleryItem(item))
+            );
+            
+            // Add all items to the gallery
+            galleryItems.forEach(item => gallery.appendChild(item));
+            
         } catch (error) {
             console.error('Error:', error);
             errorMessage.textContent = error.message;
