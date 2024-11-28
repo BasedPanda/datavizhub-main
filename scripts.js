@@ -25,7 +25,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     let cart = [];
     let videoData = [];
-    const videoCache = new Map(); // Cache for video thumbnails
 
     // Lazy loading observer
     const lazyLoadObserver = new IntersectionObserver((entries, observer) => {
@@ -60,71 +59,126 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function loadThumbnail(item, container) {
         const fileId = item.id;
-        const fileUrl = `https://datavizhub.clowderframework.org/api/files/${fileId}/blob?key=${apiKey}`;
         const loadingSpinner = container.querySelector('.spinner');
+        const previewUrl = `https://datavizhub.clowderframework.org/api/files/${fileId}/getPreviews?key=${apiKey}`;
+        const fileUrl = `https://datavizhub.clowderframework.org/api/files/${fileId}/blob?key=${apiKey}`;
 
         if (item.contentType.startsWith('video/')) {
-            // Check cache first
-            if (videoCache.has(fileId)) {
-                const thumbnail = document.createElement('img');
-                thumbnail.src = videoCache.get(fileId);
-                thumbnail.alt = item.filename;
-                thumbnail.className = 'thumbnail';
-                container.appendChild(thumbnail);
-                loadingSpinner.style.display = 'none';
-                setupVideoPreview(container, fileUrl);
-                return;
-            }
-
-            const video = document.createElement('video');
-            video.src = fileUrl;
-            video.muted = true;
-            video.crossOrigin = "anonymous";
-            video.preload = 'metadata';
-
-            video.addEventListener('loadedmetadata', () => {
-                video.currentTime = video.duration / 2;
-            }, { once: true });
-
-            video.addEventListener('seeked', () => {
-                const canvas = document.createElement('canvas');
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
-                const context = canvas.getContext('2d');
-                context.drawImage(video, 0, 0, canvas.width, canvas.height);
-                
-                const thumbnailUrl = canvas.toDataURL('image/jpeg');
-                videoCache.set(fileId, thumbnailUrl); // Cache the thumbnail
-
-                const thumbnail = document.createElement('img');
-                thumbnail.src = thumbnailUrl;
-                thumbnail.alt = item.filename;
-                thumbnail.className = 'thumbnail';
-                container.appendChild(thumbnail);
-                loadingSpinner.style.display = 'none';
-                
-                setupVideoPreview(container, fileUrl);
-                video.remove();
-            }, { once: true });
-
+            fetch(previewUrl, {
+                headers: {
+                    'X-API-Key': apiKey
+                }
+            })
+            .then(response => response.json())
+            .then(previews => {
+                // Find the thumbnail preview (usually PNG)
+                const thumbnailPreview = previews.find(p => p.contentType === 'image/png');
+                if (thumbnailPreview) {
+                    const thumbnail = document.createElement('img');
+                    thumbnail.src = `https://datavizhub.clowderframework.org/api/previews/${thumbnailPreview.id}/blob?key=${apiKey}`;
+                    thumbnail.alt = item.filename;
+                    thumbnail.className = 'thumbnail';
+                    thumbnail.onload = () => {
+                        loadingSpinner.style.display = 'none';
+                    };
+                    container.appendChild(thumbnail);
+                    setupVideoPreview(container, fileUrl);
+                } else {
+                    // Fallback to our existing thumbnail generation
+                    generateThumbnailFromVideo(item, container, loadingSpinner);
+                }
+            })
+            .catch(error => {
+                console.error('Error loading preview:', error);
+                generateThumbnailFromVideo(item, container, loadingSpinner);
+            });
         } else if (item.contentType.startsWith('image/')) {
+            fetch(previewUrl, {
+                headers: {
+                    'X-API-Key': apiKey
+                }
+            })
+            .then(response => response.json())
+            .then(previews => {
+                // Find an image preview
+                const imagePreview = previews.find(p => p.contentType.startsWith('image/'));
+                if (imagePreview) {
+                    const thumbnail = document.createElement('img');
+                    thumbnail.src = `https://datavizhub.clowderframework.org/api/previews/${imagePreview.id}/blob?key=${apiKey}`;
+                    thumbnail.alt = item.filename;
+                    thumbnail.className = 'thumbnail';
+                    thumbnail.onload = () => {
+                        loadingSpinner.style.display = 'none';
+                    };
+                    container.appendChild(thumbnail);
+                } else {
+                    // Fallback to original image if no preview exists
+                    const thumbnail = document.createElement('img');
+                    thumbnail.src = fileUrl;
+                    thumbnail.alt = item.filename;
+                    thumbnail.className = 'thumbnail';
+                    thumbnail.crossOrigin = "anonymous";
+                    thumbnail.onload = () => {
+                        loadingSpinner.style.display = 'none';
+                    };
+                    thumbnail.onerror = () => {
+                        loadingSpinner.style.display = 'none';
+                        thumbnail.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect width="100" height="100" fill="%23eee"/><text x="50%" y="50%" font-family="Arial" font-size="14" text-anchor="middle" dy=".3em">Image Error</text></svg>';
+                    };
+                    container.appendChild(thumbnail);
+                }
+            })
+            .catch(error => {
+                console.error('Error loading preview:', error);
+                // Fallback to original image
+                const thumbnail = document.createElement('img');
+                thumbnail.src = fileUrl;
+                thumbnail.alt = item.filename;
+                thumbnail.className = 'thumbnail';
+                thumbnail.crossOrigin = "anonymous";
+                thumbnail.onload = () => {
+                    loadingSpinner.style.display = 'none';
+                };
+                thumbnail.onerror = () => {
+                    loadingSpinner.style.display = 'none';
+                    thumbnail.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect width="100" height="100" fill="%23eee"/><text x="50%" y="50%" font-family="Arial" font-size="14" text-anchor="middle" dy=".3em">Image Error</text></svg>';
+                };
+                container.appendChild(thumbnail);
+            });
+        }
+    }
+
+    function generateThumbnailFromVideo(item, container, loadingSpinner) {
+        const fileId = item.id;
+        const fileUrl = `https://datavizhub.clowderframework.org/api/files/${fileId}/blob?key=${apiKey}`;
+        
+        const video = document.createElement('video');
+        video.src = fileUrl;
+        video.muted = true;
+        video.crossOrigin = "anonymous";
+        video.preload = 'metadata';
+
+        video.addEventListener('loadedmetadata', () => {
+            video.currentTime = video.duration / 2;
+        }, { once: true });
+
+        video.addEventListener('seeked', () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const context = canvas.getContext('2d');
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
             const thumbnail = document.createElement('img');
-            thumbnail.src = fileUrl;
+            thumbnail.src = canvas.toDataURL('image/jpeg');
             thumbnail.alt = item.filename;
             thumbnail.className = 'thumbnail';
-            thumbnail.crossOrigin = "anonymous";
-            
-            thumbnail.onload = () => {
-                loadingSpinner.style.display = 'none';
-            };
-
-            thumbnail.onerror = () => {
-                loadingSpinner.style.display = 'none';
-                thumbnail.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect width="100" height="100" fill="%23eee"/><text x="50%" y="50%" font-family="Arial" font-size="14" text-anchor="middle" dy=".3em">Image Error</text></svg>';
-            };
-
             container.appendChild(thumbnail);
-        }
+            loadingSpinner.style.display = 'none';
+            
+            setupVideoPreview(container, fileUrl);
+            video.remove();
+        }, { once: true });
     }
 
     function setupVideoPreview(container, fileUrl) {
