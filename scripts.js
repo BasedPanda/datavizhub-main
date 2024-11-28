@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', function() {
-    const apiEndpoint = 'https://datavizhub.clowderframework.org/api/datasets/6557a87be4b08520ac408e92/files';
-    const apiKey = '1281ede1-d192-4fcf-9562-f73d6915ea70';
+    //const apiEndpoint = 'https://datavizhub.clowderframework.org/api/datasets/6557a87be4b08520ac408e92/files';
+    const apiEndpoint = 'https://datavizhub.clowderframework.org/api/datasets/66461b63e4b01d098f2777e6/files';
+    const apiKey = '21335e14-10d2-4b97-8cdf-e661a4a7eee8';
     const googleFormUrl = 'https://docs.google.com/forms/d/e/1FAIpQLScNi9NpdsSJcEnBvK37ZHSnxC7ocZ2XxNZjkYtoxHWyigsb-A/viewform';
     const videoTitleFieldId = 'entry.2027306240';
 
@@ -32,27 +33,33 @@ document.addEventListener('DOMContentLoaded', function() {
         const thumbnailContainer = document.createElement('div');
         thumbnailContainer.className = 'thumbnail-container';
 
+        // Add loading indicator
         const loadingSpinner = document.createElement('div');
-        loadingSpinner.className = 'item-loading';
-        loadingSpinner.innerHTML = '<div class="spinner"></div>';
+        loadingSpinner.className = 'spinner';
         thumbnailContainer.appendChild(loadingSpinner);
 
         if (item.contentType.startsWith('video/')) {
-            const video = document.createElement('video');
-            video.src = fileUrl;
-            video.muted = true;
-            video.crossOrigin = "anonymous";
-            video.preload = 'metadata';
-
+            // Create preview video for hover
             const previewVideo = document.createElement('video');
             previewVideo.className = 'preview-video';
             previewVideo.src = fileUrl;
             previewVideo.muted = true;
             previewVideo.loop = true;
+            previewVideo.crossOrigin = "anonymous";
+            previewVideo.playsInline = true; // Add playsinline for iOS
             thumbnailContainer.appendChild(previewVideo);
 
+            // Create thumbnail from video
+            const thumbnailVideo = document.createElement('video');
+            thumbnailVideo.src = fileUrl;
+            thumbnailVideo.muted = true;
+            thumbnailVideo.crossOrigin = "anonymous";
+            thumbnailVideo.preload = 'metadata';
+            thumbnailVideo.playsInline = true; // Add playsinline for iOS
+
+            // Handle hover events
             galleryItem.addEventListener('mouseenter', () => {
-                previewVideo.play().catch(e => console.log('Preview autoplay prevented'));
+                previewVideo.play().catch(e => console.log('Preview playback failed:', e));
             });
 
             galleryItem.addEventListener('mouseleave', () => {
@@ -60,48 +67,84 @@ document.addEventListener('DOMContentLoaded', function() {
                 previewVideo.currentTime = 0;
             });
 
-            video.addEventListener('loadeddata', () => {
-                video.currentTime = video.duration / 2;
-            });
-
-            video.addEventListener('seeked', () => {
+            // Function to generate thumbnail
+            const generateThumbnail = () => {
                 const canvas = document.createElement('canvas');
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
+                canvas.width = thumbnailVideo.videoWidth;
+                canvas.height = thumbnailVideo.videoHeight;
                 const context = canvas.getContext('2d');
-                context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                context.drawImage(thumbnailVideo, 0, 0, canvas.width, canvas.height);
                 
                 const thumbnail = document.createElement('img');
-                thumbnail.src = canvas.toDataURL('image/jpeg', 0.7);
+                thumbnail.src = canvas.toDataURL('image/jpeg');
                 thumbnail.alt = item.filename;
                 thumbnail.className = 'thumbnail';
                 thumbnailContainer.appendChild(thumbnail);
                 loadingSpinner.style.display = 'none';
-                video.remove();
+                thumbnailVideo.remove();
+            };
+
+            // Try multiple times to get the thumbnail
+            thumbnailVideo.addEventListener('loadeddata', () => {
+                setTimeout(() => {
+                    // Calculate 20% of the video duration
+                    const twentyPercent = thumbnailVideo.duration * 0.2;
+                    thumbnailVideo.currentTime = twentyPercent;
+                    
+                    setTimeout(() => {
+                        generateThumbnail();
+                    }, 100);
+                }, 100);
             });
 
-            video.addEventListener('error', () => {
-                loadingSpinner.innerHTML = 'Error loading video';
-                loadingSpinner.className = 'item-error';
-            });
         } else if (item.contentType.startsWith('image/')) {
-            const thumbnail = document.createElement('img');
-            thumbnail.src = fileUrl;
-            thumbnail.alt = item.filename;
-            thumbnail.className = 'thumbnail';
-            thumbnail.crossOrigin = "anonymous";
-            thumbnail.loading = 'lazy';
+            // Handle TIFF files specially
+            if (item.filename.toLowerCase().endsWith('.tif') || item.filename.toLowerCase().endsWith('.tiff')) {
+                // Create a canvas element to convert TIFF to JPEG
+                const img = new Image();
+                img.crossOrigin = "anonymous";
+                
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0);
+                    
+                    // Convert to JPEG
+                    const jpegUrl = canvas.toDataURL('image/jpeg');
+                    
+                    const thumbnail = document.createElement('img');
+                    thumbnail.src = jpegUrl;
+                    thumbnail.alt = item.filename;
+                    thumbnail.className = 'thumbnail';
+                    thumbnailContainer.appendChild(thumbnail);
+                    loadingSpinner.style.display = 'none';
+                };
 
-            thumbnail.onload = () => {
-                loadingSpinner.style.display = 'none';
-            };
+                img.onerror = function() {
+                    // Fallback to placeholder if TIFF loading fails
+                    const thumbnail = document.createElement('img');
+                    thumbnail.src = 'path/to/placeholder-image.jpg'; // Add a placeholder image
+                    thumbnail.alt = 'Image preview not available';
+                    thumbnail.className = 'thumbnail';
+                    thumbnailContainer.appendChild(thumbnail);
+                    loadingSpinner.style.display = 'none';
+                };
 
-            thumbnail.onerror = () => {
-                loadingSpinner.innerHTML = 'Error loading image';
-                loadingSpinner.className = 'item-error';
-            };
-
-            thumbnailContainer.appendChild(thumbnail);
+                img.src = fileUrl;
+            } else {
+                // Handle other image formats normally
+                const thumbnail = document.createElement('img');
+                thumbnail.src = fileUrl;
+                thumbnail.alt = item.filename;
+                thumbnail.className = 'thumbnail';
+                thumbnail.crossOrigin = "anonymous";
+                thumbnail.onload = () => {
+                    loadingSpinner.style.display = 'none';
+                };
+                thumbnailContainer.appendChild(thumbnail);
+            }
         }
 
         const title = document.createElement('h3');
@@ -135,24 +178,54 @@ document.addEventListener('DOMContentLoaded', function() {
         galleryItem.appendChild(addToCartBtn);
 
         galleryItem.addEventListener('click', () => {
+            modal.style.display = 'block';
+            document.getElementById('video-title').textContent = item.filename;
+            
             if (item.contentType.startsWith('video/')) {
-                modal.style.display = 'block';
                 modalVideo.style.display = 'block';
+                modalVideo.setAttribute('controlsList', 'nodownload');
+                modalVideo.oncontextmenu = function(e) { 
+                    e.preventDefault(); 
+                    return false; 
+                };
+                modalVideo.controls = true;
+                modalVideo.playsInline = true; // Add playsinline for iOS
+                modalVideo.style.pointerEvents = 'auto';
                 modalVideo.src = fileUrl;
-                videoTitle.textContent = item.filename;
-                videoDescription.textContent = 'Description for ' + item.filename;
+                modalVideo.play().catch(e => console.log('Modal playback failed:', e));
                 document.querySelector('.modal-image')?.remove();
             } else if (item.contentType.startsWith('image/')) {
-                modal.style.display = 'block';
                 modalVideo.style.display = 'none';
                 let modalImage = document.querySelector('.modal-image');
+                
                 if (!modalImage) {
                     modalImage = document.createElement('img');
                     modalImage.className = 'modal-image';
+                    modalImage.oncontextmenu = function(e) { 
+                        e.preventDefault(); 
+                        return false; 
+                    };
                     modalVideo.parentNode.insertBefore(modalImage, modalVideo);
                 }
-                modalImage.src = fileUrl;
-                videoTitle.textContent = item.filename;
+
+                if (item.filename.toLowerCase().endsWith('.tif') || item.filename.toLowerCase().endsWith('.tiff')) {
+                    // Convert TIFF to JPEG for display
+                    const img = new Image();
+                    img.crossOrigin = "anonymous";
+                    
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0);
+                        modalImage.src = canvas.toDataURL('image/jpeg');
+                    };
+                    
+                    img.src = fileUrl;
+                } else {
+                    modalImage.src = fileUrl;
+                }
             }
         });
 
@@ -225,6 +298,7 @@ document.addEventListener('DOMContentLoaded', function() {
             modal.style.display = 'none';
             cartModal.style.display = 'none';
             modalVideo.pause();
+            modalVideo.currentTime = 0;
         };
     });
 
@@ -232,6 +306,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (event.target == modal) {
             modal.style.display = 'none';
             modalVideo.pause();
+            modalVideo.currentTime = 0;
         } else if (event.target == cartModal) {
             cartModal.style.display = 'none';
         }
@@ -244,6 +319,13 @@ document.addEventListener('DOMContentLoaded', function() {
             const title = item.querySelector('h3').textContent.toLowerCase();
             item.style.display = title.includes(query) ? 'block' : 'none';
         });
+    });
+
+    // Prevent save shortcut
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 's' && (e.ctrlKey || e.metaKey)) {
+            e.preventDefault();
+        }
     });
 
     fetchData();
