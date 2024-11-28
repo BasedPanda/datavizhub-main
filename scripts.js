@@ -1,8 +1,8 @@
 document.addEventListener('DOMContentLoaded', function() {
     const apiEndpoint = 'https://datavizhub.clowderframework.org/api/datasets/66461b63e4b01d098f2777e6/files';
     const apiKey = '21335e14-10d2-4b97-8cdf-e661a4a7eee8';
-    const googleFormUrl = 'YOUR_GOOGLE_FORM_URL_HERE'; // Replace with your Google Form URL
-    const videoTitleFieldId = 'entry.XXXXX'; // Replace with your Google Form field ID
+    const googleFormUrl = 'https://docs.google.com/forms/d/e/1FAIpQLScNi9NpdsSJcEnBvK37ZHSnxC7ocZ2XxNZjkYtoxHWyigsb-A/viewform';
+    const videoTitleFieldId = 'entry.2027306240';
 
     const gallery = document.getElementById('video-gallery');
     const searchInput = document.getElementById('search-input');
@@ -29,7 +29,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const fileId = item.id;
         const fileUrl = `https://datavizhub.clowderframework.org/api/files/${fileId}/blob?key=${apiKey}`;
         
-        // Create thumbnail container
         const thumbnailContainer = document.createElement('div');
         thumbnailContainer.className = 'thumbnail-container';
 
@@ -40,6 +39,24 @@ document.addEventListener('DOMContentLoaded', function() {
             video.muted = true;
             video.crossOrigin = "anonymous";
             video.preload = 'metadata';
+
+            // Create preview video for hover
+            const previewVideo = document.createElement('video');
+            previewVideo.className = 'preview-video';
+            previewVideo.src = fileUrl;
+            previewVideo.muted = true;
+            previewVideo.loop = true;
+            thumbnailContainer.appendChild(previewVideo);
+
+            // Handle hover events
+            galleryItem.addEventListener('mouseenter', () => {
+                previewVideo.play();
+            });
+
+            galleryItem.addEventListener('mouseleave', () => {
+                previewVideo.pause();
+                previewVideo.currentTime = 0;
+            });
 
             video.addEventListener('loadeddata', () => {
                 video.currentTime = video.duration / 2;
@@ -55,16 +72,22 @@ document.addEventListener('DOMContentLoaded', function() {
                 const thumbnail = document.createElement('img');
                 thumbnail.src = canvas.toDataURL('image/jpeg');
                 thumbnail.alt = item.filename;
+                thumbnail.className = 'thumbnail';
                 thumbnailContainer.appendChild(thumbnail);
                 video.remove();
             });
+        } else if (item.contentType.startsWith('image/')) {
+            const thumbnail = document.createElement('img');
+            thumbnail.src = fileUrl;
+            thumbnail.alt = item.filename;
+            thumbnail.className = 'thumbnail';
+            thumbnail.crossOrigin = "anonymous";
+            thumbnailContainer.appendChild(thumbnail);
         }
 
-        // Create title
         const title = document.createElement('h3');
         title.textContent = item.filename;
 
-        // Create add to cart button
         const addToCartBtn = document.createElement('button');
         addToCartBtn.className = 'cart-btn';
         addToCartBtn.textContent = 'Add to Cart';
@@ -92,13 +115,24 @@ document.addEventListener('DOMContentLoaded', function() {
         galleryItem.appendChild(title);
         galleryItem.appendChild(addToCartBtn);
 
-        // Add click handler for video playback
         galleryItem.addEventListener('click', () => {
+            modal.style.display = 'block';
+            document.getElementById('video-title').textContent = item.filename;
+            
             if (item.contentType.startsWith('video/')) {
-                modal.style.display = 'block';
+                modalVideo.style.display = 'block';
                 modalVideo.src = fileUrl;
                 modalVideo.setAttribute('quality', '720');
-                document.getElementById('video-title').textContent = item.filename;
+                document.querySelector('.modal-image')?.remove();
+            } else if (item.contentType.startsWith('image/')) {
+                modalVideo.style.display = 'none';
+                let modalImage = document.querySelector('.modal-image');
+                if (!modalImage) {
+                    modalImage = document.createElement('img');
+                    modalImage.className = 'modal-image';
+                    modalVideo.parentNode.insertBefore(modalImage, modalVideo);
+                }
+                modalImage.src = fileUrl;
             }
         });
 
@@ -133,7 +167,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Cart functionality
     cartButton.onclick = () => {
         cartItems.innerHTML = '';
         if (cart.length === 0) {
@@ -157,7 +190,6 @@ document.addEventListener('DOMContentLoaded', function() {
         cartModal.style.display = 'block';
     };
 
-    // Proceed to Google Form
     proceedToForm.onclick = () => {
         const videoTitles = cart.map(id => {
             const item = videoData.find(v => v.id === id);
@@ -168,7 +200,6 @@ document.addEventListener('DOMContentLoaded', function() {
         window.open(formUrl, '_blank');
     };
 
-    // Modal close handlers
     document.querySelectorAll('.close, .close-cart').forEach(closeBtn => {
         closeBtn.onclick = function() {
             modal.style.display = 'none';
@@ -177,7 +208,15 @@ document.addEventListener('DOMContentLoaded', function() {
         };
     });
 
-    // Search functionality
+    window.onclick = function(event) {
+        if (event.target == modal) {
+            modal.style.display = 'none';
+            modalVideo.pause();
+        } else if (event.target == cartModal) {
+            cartModal.style.display = 'none';
+        }
+    };
+
     searchInput.addEventListener('input', function() {
         const query = this.value.toLowerCase();
         const items = document.querySelectorAll('.gallery-item');
