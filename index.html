@@ -13,14 +13,10 @@
         <button id="cart-button">Cart (0)</button>
     </div>
     <div class="main-container">
-        <div class="sidebar">
-            <ul>
-                <li class="active">Home</li>
-                <li>Recently Added</li>
-                <li>Categories</li>
-            </ul>
-        </div>
         <div class="container">
+            <div class="info-message">
+                These videos are made for browsing purposes. If you want to gain a license to any of these, please add your choice of videos to the cart and fill out the ensuing google form. The AVL team will get in touch with you shortly.
+            </div>
             <div id="video-gallery" class="gallery"></div>
             <div id="loading-indicator" class="loading">Loading...</div>
             <div id="error-message" class="error"></div>
@@ -31,7 +27,10 @@
     <div id="video-modal" class="modal">
         <div class="modal-content">
             <span class="close">&times;</span>
-            <video id="modal-video" controls></video>
+            <video id="modal-video" controls controlsList="nodownload">
+                <source id="modal-video-source" src="" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
             <div id="video-info">
                 <h2 id="video-title"></h2>
                 <p id="video-description"></p>
