@@ -1,15 +1,14 @@
 document.addEventListener('DOMContentLoaded', function() {
-    //const apiEndpoint = 'https://datavizhub.clowderframework.org/api/datasets/6557a87be4b08520ac408e92/files';
     const apiEndpoint = 'https://datavizhub.clowderframework.org/api/datasets/66461b63e4b01d098f2777e6/files';
+    //const apiEndpoint = 'https://datavizhub.clowderframework.org/api/datasets/6557a87be4b08520ac408e92/files';
     const apiKey = '21335e14-10d2-4b97-8cdf-e661a4a7eee8';
     const googleFormUrl = 'https://docs.google.com/forms/d/e/1FAIpQLScNi9NpdsSJcEnBvK37ZHSnxC7ocZ2XxNZjkYtoxHWyigsb-A/viewform';
     
-    // Add form field constants
     const FORM_FIELDS = {
-        videoTitles: 'entry.1000023',  // Field ID for Videos Requested field
-        requestor: 'entry.1000020',    // Field ID for Your name
-        email: 'entry.1000025',        // Field ID for E-mail
-        phone: 'entry.1000022'         // Field ID for Phone number
+        videoTitles: 'entry.1000023',
+        requestor: 'entry.1000020',
+        email: 'entry.1000025',
+        phone: 'entry.1000022'
     };
 
     const gallery = document.getElementById('video-gallery');
@@ -22,9 +21,23 @@ document.addEventListener('DOMContentLoaded', function() {
     const cartButton = document.getElementById('cart-button');
     const cartItems = document.getElementById('cart-items');
     const proceedToForm = document.getElementById('proceed-to-form');
+    const logo = document.querySelector('.logo');
 
     let cart = [];
     let videoData = [];
+
+    logo.addEventListener('click', () => {
+        searchInput.value = '';
+        const items = document.querySelectorAll('.gallery-item');
+        items.forEach(item => {
+            item.style.display = 'block';
+        });
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
+        fetchData();
+    });
 
     function updateCartButton() {
         cartButton.textContent = `Cart (${cart.length})`;
@@ -40,31 +53,27 @@ document.addEventListener('DOMContentLoaded', function() {
         const thumbnailContainer = document.createElement('div');
         thumbnailContainer.className = 'thumbnail-container';
 
-        // Add loading indicator
         const loadingSpinner = document.createElement('div');
         loadingSpinner.className = 'spinner';
         thumbnailContainer.appendChild(loadingSpinner);
 
         if (item.contentType.startsWith('video/')) {
-            // Create preview video for hover
             const previewVideo = document.createElement('video');
             previewVideo.className = 'preview-video';
             previewVideo.src = fileUrl;
             previewVideo.muted = true;
             previewVideo.loop = true;
             previewVideo.crossOrigin = "anonymous";
-            previewVideo.playsInline = true; // Add playsinline for iOS
+            previewVideo.playsInline = true;
             thumbnailContainer.appendChild(previewVideo);
 
-            // Create thumbnail from video
             const thumbnailVideo = document.createElement('video');
             thumbnailVideo.src = fileUrl;
             thumbnailVideo.muted = true;
             thumbnailVideo.crossOrigin = "anonymous";
             thumbnailVideo.preload = 'metadata';
-            thumbnailVideo.playsInline = true; // Add playsinline for iOS
+            thumbnailVideo.playsInline = true;
 
-            // Handle hover events
             galleryItem.addEventListener('mouseenter', () => {
                 previewVideo.play().catch(e => console.log('Preview playback failed:', e));
             });
@@ -74,7 +83,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 previewVideo.currentTime = 0;
             });
 
-            // Function to generate thumbnail
             const generateThumbnail = () => {
                 const canvas = document.createElement('canvas');
                 canvas.width = thumbnailVideo.videoWidth;
@@ -91,9 +99,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 thumbnailVideo.remove();
             };
 
-            // Try multiple times to get the thumbnail
             thumbnailVideo.addEventListener('loadedmetadata', () => {
-                // Calculate the midpoint of the video
                 const midpoint = thumbnailVideo.duration / 2;
                 thumbnailVideo.currentTime = midpoint;
             });
@@ -103,53 +109,19 @@ document.addEventListener('DOMContentLoaded', function() {
             });
 
         } else if (item.contentType.startsWith('image/')) {
-            // Handle TIFF files specially
-            if (item.filename.toLowerCase().endsWith('.tif') || item.filename.toLowerCase().endsWith('.tiff')) {
-                // Create a canvas element to convert TIFF to JPEG
-                const img = new Image();
-                img.crossOrigin = "anonymous";
-                
-                img.onload = function() {
-                    const canvas = document.createElement('canvas');
-                    canvas.width = img.width;
-                    canvas.height = img.height;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0);
-                    
-                    // Convert to JPEG
-                    const jpegUrl = canvas.toDataURL('image/jpeg');
-                    
-                    const thumbnail = document.createElement('img');
-                    thumbnail.src = jpegUrl;
-                    thumbnail.alt = item.filename;
-                    thumbnail.className = 'thumbnail';
-                    thumbnailContainer.appendChild(thumbnail);
-                    loadingSpinner.style.display = 'none';
-                };
-
-                img.onerror = function() {
-                    // Fallback to placeholder if TIFF loading fails
-                    const thumbnail = document.createElement('img');
-                    thumbnail.src = 'path/to/placeholder-image.jpg'; // Add a placeholder image
-                    thumbnail.alt = 'Image preview not available';
-                    thumbnail.className = 'thumbnail';
-                    thumbnailContainer.appendChild(thumbnail);
-                    loadingSpinner.style.display = 'none';
-                };
-
-                img.src = fileUrl;
-            } else {
-                // Handle other image formats normally
-                const thumbnail = document.createElement('img');
-                thumbnail.src = fileUrl;
-                thumbnail.alt = item.filename;
-                thumbnail.className = 'thumbnail';
-                thumbnail.crossOrigin = "anonymous";
-                thumbnail.onload = () => {
-                    loadingSpinner.style.display = 'none';
-                };
-                thumbnailContainer.appendChild(thumbnail);
-            }
+            const thumbnail = document.createElement('img');
+            thumbnail.src = fileUrl;
+            thumbnail.alt = item.filename;
+            thumbnail.className = 'thumbnail';
+            thumbnail.crossOrigin = "anonymous";
+            thumbnail.onload = () => {
+                loadingSpinner.style.display = 'none';
+            };
+            thumbnail.onerror = () => {
+                loadingSpinner.style.display = 'none';
+                thumbnail.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect width="100" height="100" fill="%23eee"/><text x="50%" y="50%" font-family="Arial" font-size="14" text-anchor="middle" dy=".3em">Image Error</text></svg>';
+            };
+            thumbnailContainer.appendChild(thumbnail);
         }
 
         const title = document.createElement('h3');
@@ -158,6 +130,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const addToCartBtn = document.createElement('button');
         addToCartBtn.className = 'cart-btn';
         addToCartBtn.textContent = 'Add to Cart';
+        addToCartBtn.dataset.id = item.id;  // Add data attribute for identification
         
         if (cart.includes(item.id)) {
             addToCartBtn.classList.add('in-cart');
@@ -194,7 +167,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     return false; 
                 };
                 modalVideo.controls = true;
-                modalVideo.playsInline = true; // Add playsinline for iOS
+                modalVideo.playsInline = true;
                 modalVideo.style.pointerEvents = 'auto';
                 modalVideo.src = fileUrl;
                 modalVideo.play().catch(e => console.log('Modal playback failed:', e));
@@ -212,25 +185,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     };
                     modalVideo.parentNode.insertBefore(modalImage, modalVideo);
                 }
-
-                if (item.filename.toLowerCase().endsWith('.tif') || item.filename.toLowerCase().endsWith('.tiff')) {
-                    // Convert TIFF to JPEG for display
-                    const img = new Image();
-                    img.crossOrigin = "anonymous";
-                    
-                    img.onload = function() {
-                        const canvas = document.createElement('canvas');
-                        canvas.width = img.width;
-                        canvas.height = img.height;
-                        const ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, 0, 0);
-                        modalImage.src = canvas.toDataURL('image/jpeg');
-                    };
-                    
-                    img.src = fileUrl;
-                } else {
-                    modalImage.src = fileUrl;
-                }
+                modalImage.src = fileUrl;
             }
         });
 
@@ -276,10 +231,39 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (item) {
                     const itemEl = document.createElement('div');
                     itemEl.className = 'cart-item';
-                    itemEl.innerHTML = `
-                        <span>${item.filename}</span>
-                        <button onclick="this.parentElement.remove();cart=cart.filter(i=>i!=='${id}');updateCartButton();">Remove</button>
-                    `;
+                    
+                    const nameSpan = document.createElement('span');
+                    nameSpan.textContent = item.filename;
+                    
+                    const removeBtn = document.createElement('button');
+                    removeBtn.textContent = 'Remove';
+                    
+                    removeBtn.addEventListener('click', () => {
+                        // Remove from cart array
+                        cart = cart.filter(cartId => cartId !== id);
+                        
+                        // Remove from display
+                        itemEl.remove();
+                        
+                        // Update cart button count
+                        updateCartButton();
+                        
+                        // Update "Add to Cart" button in gallery
+                        const cartBtn = document.querySelector(`.cart-btn[data-id="${id}"]`);
+                        if (cartBtn) {
+                            cartBtn.textContent = 'Add to Cart';
+                            cartBtn.classList.remove('in-cart');
+                        }
+                        
+                        // If cart is empty, show empty message and hide proceed button
+                        if (cart.length === 0) {
+                            cartItems.innerHTML = '<p>Your cart is empty</p>';
+                            proceedToForm.style.display = 'none';
+                        }
+                    });
+                    
+                    itemEl.appendChild(nameSpan);
+                    itemEl.appendChild(removeBtn);
                     cartItems.appendChild(itemEl);
                 }
             });
@@ -294,10 +278,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return item ? item.filename.trim() : '';
         }).filter(title => title).join(', ');
     
-        // Build the URL with all form fields
         let formUrl = googleFormUrl + '?';
-        
-        // Add video titles
         formUrl += `${FORM_FIELDS.videoTitles}=${encodeURIComponent(videoTitles)}`;
         
         window.open(formUrl, '_blank');
@@ -331,7 +312,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Prevent save shortcut
     document.addEventListener('keydown', function(e) {
         if (e.key === 's' && (e.ctrlKey || e.metaKey)) {
             e.preventDefault();
