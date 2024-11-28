@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', function() {
-    const apiEndpoint = 'https://datavizhub.clowderframework.org/api/datasets/66461b63e4b01d098f2777e6/files';
-    //const apiEndpoint = 'https://datavizhub.clowderframework.org/api/datasets/6557a87be4b08520ac408e92/files';
+    const apiEndpoint = 'https://datavizhub.clowderframework.org/api/datasets/66461b63e4b01d098f2777e6/files'; // test viz hub
+    //const apiEndpoint = 'https://datavizhub.clowderframework.org/api/datasets/66461b63e4b01d098f2777e6/files'; // Jeff's dataset
     const apiKey = '21335e14-10d2-4b97-8cdf-e661a4a7eee8';
     const googleFormUrl = 'https://docs.google.com/forms/d/e/1FAIpQLScNi9NpdsSJcEnBvK37ZHSnxC7ocZ2XxNZjkYtoxHWyigsb-A/viewform';
     
@@ -26,6 +26,13 @@ document.addEventListener('DOMContentLoaded', function() {
     let cart = [];
     let videoData = [];
 
+    const fetchOptions = {
+        headers: {
+            'X-API-Key': apiKey,
+            'accept': '*/*'
+        }
+    };
+
     logo.addEventListener('click', () => {
         searchInput.value = '';
         const items = document.querySelectorAll('.gallery-item');
@@ -43,181 +50,192 @@ document.addEventListener('DOMContentLoaded', function() {
         cartButton.textContent = `Cart (${cart.length})`;
     }
 
-    function createGalleryItem(item) {
+    async function getFilePreviews(fileId) {
+        try {
+            const response = await fetch(
+                `https://datavizhub.clowderframework.org/api/files/${fileId}/getPreviews`,
+                fetchOptions
+            );
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            const data = await response.json();
+            return data[0].previews;
+        } catch (error) {
+            console.error('Error fetching previews:', error);
+            return [];
+        }
+    }
+
+    async function createGalleryItem(item) {
         const galleryItem = document.createElement('div');
         galleryItem.className = 'gallery-item';
-
-        const fileId = item.id;
-        const fileUrl = `https://datavizhub.clowderframework.org/api/files/${fileId}/blob?key=${apiKey}`;
-        
+    
         const thumbnailContainer = document.createElement('div');
         thumbnailContainer.className = 'thumbnail-container';
-
+    
         const loadingSpinner = document.createElement('div');
         loadingSpinner.className = 'spinner';
         thumbnailContainer.appendChild(loadingSpinner);
-
-        if (item.contentType.startsWith('video/')) {
-            const previewVideo = document.createElement('video');
-            previewVideo.className = 'preview-video';
-            previewVideo.src = fileUrl;
-            previewVideo.muted = true;
-            previewVideo.loop = true;
-            previewVideo.crossOrigin = "anonymous";
-            previewVideo.playsInline = true;
-            thumbnailContainer.appendChild(previewVideo);
-
-            const thumbnailVideo = document.createElement('video');
-            thumbnailVideo.src = fileUrl;
-            thumbnailVideo.muted = true;
-            thumbnailVideo.crossOrigin = "anonymous";
-            thumbnailVideo.preload = 'metadata';
-            thumbnailVideo.playsInline = true;
-
-            galleryItem.addEventListener('mouseenter', () => {
-                previewVideo.play().catch(e => console.log('Preview playback failed:', e));
-            });
-
-            galleryItem.addEventListener('mouseleave', () => {
-                previewVideo.pause();
-                previewVideo.currentTime = 0;
-            });
-
-            const generateThumbnail = () => {
-                const canvas = document.createElement('canvas');
-                canvas.width = thumbnailVideo.videoWidth;
-                canvas.height = thumbnailVideo.videoHeight;
-                const context = canvas.getContext('2d');
-                context.drawImage(thumbnailVideo, 0, 0, canvas.width, canvas.height);
-                
-                const thumbnail = document.createElement('img');
-                thumbnail.src = canvas.toDataURL('image/jpeg');
-                thumbnail.alt = item.filename;
-                thumbnail.className = 'thumbnail';
-                thumbnailContainer.appendChild(thumbnail);
-                loadingSpinner.style.display = 'none';
-                thumbnailVideo.remove();
-            };
-
-            thumbnailVideo.addEventListener('loadedmetadata', () => {
-                const midpoint = thumbnailVideo.duration / 2;
-                thumbnailVideo.currentTime = midpoint;
-            });
-
-            thumbnailVideo.addEventListener('seeked', () => {
-                generateThumbnail();
-            });
-
-        } else if (item.contentType.startsWith('image/')) {
-            const thumbnail = document.createElement('img');
-            thumbnail.src = fileUrl;
-            thumbnail.alt = item.filename;
-            thumbnail.className = 'thumbnail';
-            thumbnail.crossOrigin = "anonymous";
-            thumbnail.onload = () => {
-                loadingSpinner.style.display = 'none';
-            };
-            thumbnail.onerror = () => {
-                loadingSpinner.style.display = 'none';
-                thumbnail.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect width="100" height="100" fill="%23eee"/><text x="50%" y="50%" font-family="Arial" font-size="14" text-anchor="middle" dy=".3em">Image Error</text></svg>';
-            };
-            thumbnailContainer.appendChild(thumbnail);
-        }
-
-        const title = document.createElement('h3');
-        title.textContent = item.filename;
-
-        const addToCartBtn = document.createElement('button');
-        addToCartBtn.className = 'cart-btn';
-        addToCartBtn.textContent = 'Add to Cart';
-        addToCartBtn.dataset.id = item.id;  // Add data attribute for identification
-        
-        if (cart.includes(item.id)) {
-            addToCartBtn.classList.add('in-cart');
-            addToCartBtn.textContent = 'Remove from Cart';
-        }
-
-        addToCartBtn.onclick = (e) => {
-            e.stopPropagation();
-            if (!cart.includes(item.id)) {
-                cart.push(item.id);
-                addToCartBtn.textContent = 'Remove from Cart';
-                addToCartBtn.classList.add('in-cart');
-            } else {
-                cart = cart.filter(id => id !== item.id);
-                addToCartBtn.textContent = 'Add to Cart';
-                addToCartBtn.classList.remove('in-cart');
-            }
-            updateCartButton();
-        };
-
-        galleryItem.appendChild(thumbnailContainer);
-        galleryItem.appendChild(title);
-        galleryItem.appendChild(addToCartBtn);
-
-        galleryItem.addEventListener('click', () => {
-            modal.style.display = 'block';
-            document.getElementById('video-title').textContent = item.filename;
+    
+        try {
+            const previews = await getFilePreviews(item.id);
             
+            const thumbnailPreview = previews.find(p => p.p_id === "Thumbnail");
+            const videoPreview = previews.find(p => p.p_id === "Video");
+    
             if (item.contentType.startsWith('video/')) {
-                modalVideo.style.display = 'block';
-                modalVideo.setAttribute('controlsList', 'nodownload');
-                modalVideo.oncontextmenu = function(e) { 
-                    e.preventDefault(); 
-                    return false; 
-                };
-                modalVideo.controls = true;
-                modalVideo.playsInline = true;
-                modalVideo.style.pointerEvents = 'auto';
-                modalVideo.src = fileUrl;
-                modalVideo.play().catch(e => console.log('Modal playback failed:', e));
-                document.querySelector('.modal-image')?.remove();
+                if (videoPreview) {
+                    const previewVideo = document.createElement('video');
+                    previewVideo.className = 'preview-video';
+                    previewVideo.src = `https://datavizhub.clowderframework.org${videoPreview.pv_route}?key=${apiKey}`;
+                    previewVideo.muted = true;
+                    previewVideo.loop = true;
+                    previewVideo.playsInline = true;
+                    previewVideo.crossOrigin = "anonymous";
+                    
+                    previewVideo.onerror = () => {
+                        console.error(`Failed to load video preview for ${item.filename}`);
+                    };
+    
+                    thumbnailContainer.appendChild(previewVideo);
+    
+                    galleryItem.addEventListener('mouseenter', () => {
+                        previewVideo.style.opacity = '1';
+                        previewVideo.play().catch(e => console.log('Preview playback failed:', e));
+                    });
+    
+                    galleryItem.addEventListener('mouseleave', () => {
+                        previewVideo.style.opacity = '0';
+                        previewVideo.pause();
+                        previewVideo.currentTime = 0;
+                    });
+                }
+    
+                if (thumbnailPreview) {
+                    const thumbnail = document.createElement('img');
+                    thumbnail.src = `https://datavizhub.clowderframework.org${thumbnailPreview.pv_route}?key=${apiKey}`;
+                    thumbnail.alt = item.filename;
+                    thumbnail.className = 'thumbnail';
+                    thumbnail.crossOrigin = "anonymous";
+                    
+                    thumbnail.onerror = () => {
+                        console.error(`Failed to load thumbnail for ${item.filename}`);
+                        loadingSpinner.style.display = 'none';
+                        const errorMessage = document.createElement('div');
+                        errorMessage.className = 'item-error';
+                        errorMessage.textContent = 'Error loading thumbnail';
+                        thumbnailContainer.appendChild(errorMessage);
+                    };
+    
+                    thumbnail.onload = () => {
+                        console.log(`Successfully loaded thumbnail for ${item.filename}`);
+                        loadingSpinner.style.display = 'none';
+                    };
+                    
+                    thumbnailContainer.appendChild(thumbnail);
+                }
             } else if (item.contentType.startsWith('image/')) {
-                modalVideo.style.display = 'none';
-                let modalImage = document.querySelector('.modal-image');
+                if (thumbnailPreview) {
+                    const thumbnail = document.createElement('img');
+                    thumbnail.src = `https://datavizhub.clowderframework.org${thumbnailPreview.pv_route}?key=${apiKey}`;
+                    thumbnail.alt = item.filename;
+                    thumbnail.className = 'thumbnail';
+                    thumbnail.crossOrigin = "anonymous";
+                    
+                    thumbnail.onerror = () => {
+                        console.error(`Failed to load thumbnail for ${item.filename}`);
+                        loadingSpinner.style.display = 'none';
+                        const errorMessage = document.createElement('div');
+                        errorMessage.className = 'item-error';
+                        errorMessage.textContent = 'Error loading thumbnail';
+                        thumbnailContainer.appendChild(errorMessage);
+                    };
+    
+                    thumbnail.onload = () => {
+                        console.log(`Successfully loaded thumbnail for ${item.filename}`);
+                        loadingSpinner.style.display = 'none';
+                    };
+                    
+                    thumbnailContainer.appendChild(thumbnail);
+                }
+            }
+    
+            const title = document.createElement('h3');
+            title.textContent = item.filename;
+    
+            const addToCartBtn = document.createElement('button');
+            addToCartBtn.className = 'cart-btn';
+            addToCartBtn.textContent = cart.includes(item.id) ? 'Remove from Cart' : 'Add to Cart';
+            addToCartBtn.dataset.id = item.id;
+            if (cart.includes(item.id)) addToCartBtn.classList.add('in-cart');
+    
+            addToCartBtn.onclick = (e) => {
+                e.stopPropagation();
+                if (!cart.includes(item.id)) {
+                    cart.push(item.id);
+                    addToCartBtn.textContent = 'Remove from Cart';
+                    addToCartBtn.classList.add('in-cart');
+                } else {
+                    cart = cart.filter(id => id !== item.id);
+                    addToCartBtn.textContent = 'Add to Cart';
+                    addToCartBtn.classList.remove('in-cart');
+                }
+                updateCartButton();
+            };
+    
+            galleryItem.appendChild(thumbnailContainer);
+            galleryItem.appendChild(title);
+            galleryItem.appendChild(addToCartBtn);
+    
+            galleryItem.addEventListener('click', () => {
+                modal.style.display = 'block';
+                document.getElementById('video-title').textContent = item.filename;
                 
-                if (!modalImage) {
-                    modalImage = document.createElement('img');
-                    modalImage.className = 'modal-image';
-                    modalImage.oncontextmenu = function(e) { 
+                if (item.contentType.startsWith('video/')) {
+                    modalVideo.style.display = 'block';
+                    modalVideo.setAttribute('controlsList', 'nodownload');
+                    modalVideo.oncontextmenu = function(e) { 
                         e.preventDefault(); 
                         return false; 
                     };
-                    modalVideo.parentNode.insertBefore(modalImage, modalVideo);
+                    modalVideo.controls = true;
+                    modalVideo.playsInline = true;
+                    
+                    if (videoPreview) {
+                        modalVideo.src = `https://datavizhub.clowderframework.org${videoPreview.pv_route}?key=${apiKey}`;
+                    }
+                    
+                    modalVideo.play().catch(e => console.log('Modal playback failed:', e));
+                    document.querySelector('.modal-image')?.remove();
+                } else if (item.contentType.startsWith('image/')) {
+                    modalVideo.style.display = 'none';
+                    let modalImage = document.querySelector('.modal-image');
+                    
+                    if (!modalImage) {
+                        modalImage = document.createElement('img');
+                        modalImage.className = 'modal-image';
+                        modalImage.oncontextmenu = function(e) { 
+                            e.preventDefault(); 
+                            return false; 
+                        };
+                        modalVideo.parentNode.insertBefore(modalImage, modalVideo);
+                    }
+                    
+                    if (thumbnailPreview) {
+                        modalImage.src = `https://datavizhub.clowderframework.org${thumbnailPreview.pv_route}?key=${apiKey}`;
+                    }
                 }
-                modalImage.src = fileUrl;
-            }
-        });
-
-        return galleryItem;
-    }
-
-    function fetchData() {
-        loadingIndicator.style.display = 'block';
-        fetch(apiEndpoint, {
-            headers: {
-                'X-API-Key': apiKey
-            }
-        })
-        .then(response => {
-            loadingIndicator.style.display = 'none';
-            if (!response.ok) {
-                throw new Error(`Error ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-            videoData = data;
-            gallery.innerHTML = '';
-            data.forEach(item => {
-                gallery.appendChild(createGalleryItem(item));
             });
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            errorMessage.textContent = error.message;
-            errorMessage.style.display = 'block';
-        });
+    
+        } catch (error) {
+            console.error('Error creating gallery item:', error);
+            loadingSpinner.style.display = 'none';
+            const errorMessage = document.createElement('div');
+            errorMessage.className = 'item-error';
+            errorMessage.textContent = 'Error loading preview';
+            thumbnailContainer.appendChild(errorMessage);
+        }
+    
+        return galleryItem;
     }
 
     cartButton.onclick = () => {
@@ -239,23 +257,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     removeBtn.textContent = 'Remove';
                     
                     removeBtn.addEventListener('click', () => {
-                        // Remove from cart array
                         cart = cart.filter(cartId => cartId !== id);
-                        
-                        // Remove from display
                         itemEl.remove();
-                        
-                        // Update cart button count
                         updateCartButton();
                         
-                        // Update "Add to Cart" button in gallery
                         const cartBtn = document.querySelector(`.cart-btn[data-id="${id}"]`);
                         if (cartBtn) {
                             cartBtn.textContent = 'Add to Cart';
                             cartBtn.classList.remove('in-cart');
                         }
                         
-                        // If cart is empty, show empty message and hide proceed button
                         if (cart.length === 0) {
                             cartItems.innerHTML = '<p>Your cart is empty</p>';
                             proceedToForm.style.display = 'none';
@@ -311,6 +322,30 @@ document.addEventListener('DOMContentLoaded', function() {
             item.style.display = title.includes(query) ? 'block' : 'none';
         });
     });
+
+    async function fetchData() {
+        loadingIndicator.style.display = 'block';
+        errorMessage.style.display = 'none';
+
+        try {
+            const response = await fetch(apiEndpoint, fetchOptions);
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            
+            videoData = await response.json();
+            gallery.innerHTML = '';
+            
+            for (const item of videoData) {
+                const galleryItem = await createGalleryItem(item);
+                gallery.appendChild(galleryItem);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            errorMessage.textContent = error.message;
+            errorMessage.style.display = 'block';
+        } finally {
+            loadingIndicator.style.display = 'none';
+        }
+    }
 
     document.addEventListener('keydown', function(e) {
         if (e.key === 's' && (e.ctrlKey || e.metaKey)) {
