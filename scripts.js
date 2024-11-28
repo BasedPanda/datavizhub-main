@@ -121,8 +121,14 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (item.contentType.startsWith('video/')) {
                 modalVideo.style.display = 'block';
+                // Set controlsList attribute to prevent download
+                modalVideo.setAttribute('controlsList', 'nodownload');
+                // Disable right-click
+                modalVideo.oncontextmenu = function(e) { 
+                    e.preventDefault(); 
+                    return false; 
+                };
                 modalVideo.src = fileUrl;
-                modalVideo.setAttribute('quality', '720');
                 document.querySelector('.modal-image')?.remove();
             } else if (item.contentType.startsWith('image/')) {
                 modalVideo.style.display = 'none';
@@ -130,6 +136,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (!modalImage) {
                     modalImage = document.createElement('img');
                     modalImage.className = 'modal-image';
+                    // Disable right-click on images
+                    modalImage.oncontextmenu = function(e) { 
+                        e.preventDefault(); 
+                        return false; 
+                    };
                     modalVideo.parentNode.insertBefore(modalImage, modalVideo);
                 }
                 modalImage.src = fileUrl;
@@ -193,8 +204,8 @@ document.addEventListener('DOMContentLoaded', function() {
     proceedToForm.onclick = () => {
         const videoTitles = cart.map(id => {
             const item = videoData.find(v => v.id === id);
-            return item ? item.filename : '';
-        }).join(', ');
+            return item ? item.filename.trim() : '';
+        }).filter(title => title).join(', ');
 
         const formUrl = `${googleFormUrl}?${videoTitleFieldId}=${encodeURIComponent(videoTitles)}`;
         window.open(formUrl, '_blank');
@@ -224,6 +235,13 @@ document.addEventListener('DOMContentLoaded', function() {
             const title = item.querySelector('h3').textContent.toLowerCase();
             item.style.display = title.includes(query) ? 'block' : 'none';
         });
+    });
+
+    // Prevent save shortcut
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 's' && (e.ctrlKey || e.metaKey)) {
+            e.preventDefault();
+        }
     });
 
     fetchData();
