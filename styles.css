@@ -1,0 +1,303 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    color: #333;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+.header {
+    background-color: #ff5722; /* Orange */
+    color: #fff;
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    position: fixed;
+    top: 0;
+    width: 100%;
+    z-index: 1000;
+}
+
+.logo {
+    font-size: 24px;
+    font-weight: bold;
+    margin-right: 20px; /* Add some space between the logo and the search bar */
+}
+
+#search-input {
+    padding: 10px;
+    border: none;
+    border-radius: 2px;
+    width: 50%; /* 50% wide */
+    max-width: 600px;
+    margin: 0 auto; /* Center the search bar */
+    flex-grow: 1; /* Make the search bar grow */
+}
+
+.main-container {
+    display: flex;
+    margin-top: 60px; /* Adjust margin to leave space for the header */
+}
+
+.sidebar {
+    width: 150px; /* Narrower sidebar */
+    background-color: #e64a19; /* Slightly darker orange */
+    padding: 20px;
+    color: #fff;
+    height: 100vh; /* Full height */
+    position: fixed; /* Fix the position */
+    top: 60px; /* Adjust for the header height */
+    left: 0;
+    overflow-y: auto;
+}
+
+.sidebar ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+.sidebar ul li {
+    padding: 10px 0;
+    cursor: pointer;
+}
+
+.sidebar ul li:first-child {
+    padding-top: 10px; /* Adjust padding to fit the design */
+}
+
+.sidebar ul li:hover {
+    background-color: #d84315; /* Even darker orange */
+}
+
+.container {
+    flex-grow: 1;
+    margin-left: 170px; /* Adjust to leave space for the sidebar */
+    padding: 20px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.gallery {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.gallery-item {
+    background-color: #fff;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    width: calc(25% - 20px);
+    box-sizing: border-box;
+    text-align: center;
+    cursor: pointer;
+    position: relative;
+    transition: transform 0.2s;
+}
+
+.gallery-item:hover {
+    transform: scale(1.05);
+}
+
+.gallery-item img {
+    width: 100%;
+    height: auto;
+    display: block;
+    margin-bottom: 10px;
+    border-radius: 4px;
+}
+
+.gallery-item h3 {
+    font-size: 16px;
+    margin: 0;
+    color: #ff5722; /* Orange */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.loading, .error {
+    text-align: center;
+    margin-top: 20px;
+}
+
+.loading {
+    color: #ff5722; /* Orange */
+}
+
+.error {
+    color: red;
+}
+
+@media (max-width: 768px) {
+    .gallery-item {
+        width: calc(50% - 20px);
+    }
+
+    #search-input {
+        width: 100%;
+    }
+
+    .sidebar {
+        width: 100px; /* Adjust for smaller screens */
+    }
+
+    .container {
+        margin-left: 120px; /* Adjust for smaller screens */
+    }
+}
+
+@media (max-width: 480px) {
+    .gallery-item {
+        width: calc(100% - 20px);
+    }
+}
+
+/* Modal styles */
+.modal {
+    display: none; /* Hidden by default */
+    position: fixed; /* Stay in place */
+    z-index: 1001; /* Sit on top */
+    left: 0;
+    top: 0;
+    width: 100%; /* Full width */
+    height: 100%; /* Full height */
+    overflow: auto; /* Enable scroll if needed */
+    background-color: rgb(0,0,0); /* Fallback color */
+    background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: 5% auto; /* 5% from the top and centered */
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%; /* Could be more or less, depending on screen size */
+    max-width: 800px; /* Maximum width for the modal */
+    box-sizing: border-box;
+}
+
+.modal-content video {
+    width: 100%;
+    height: auto;
+    max-height: 80vh; /* Ensure the video doesn't exceed the viewport height */
+}
+
+.close, .close-login, .close-register {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.close:hover, .close:focus, .close-login:hover, .close-login:focus, .close-register:hover, .close-register:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+/* Modal input fields */
+.modal-content input {
+    width: calc(100% - 20px);
+    padding: 10px;
+    margin: 10px 0;
+    box-sizing: border-box;
+}
+
+.modal-content button {
+    width: 100%;
+    padding: 10px;
+    background-color: #ff5722;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+.modal-content button:hover {
+    background-color: #e64a19;
+}
+
+
+.cart-btn {
+    background-color: #ff5722;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: background-color 0.2s;
+}
+
+.cart-btn.in-cart {
+    background-color: #666;
+}
+
+.cart-btn:hover {
+    background-color: #e64a19;
+}
+
+#cart-button {
+    background-color: white;
+    color: #ff5722;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-left: 20px;
+}
+
+.cart-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+}
+
+.cart-item button {
+    background-color: #ff5722;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.checkout-btn {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 20px;
+    width: 100%;
+}
+
+.thumbnail-container {
+    position: relative;
+    width: 100%;
+    padding-top: 56.25%; /* 16:9 Aspect Ratio */
+    background-color: #f0f0f0;
+    margin-bottom: 10px;
+}
+
+.thumbnail-container img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+#video-modal video {
+    max-height: 70vh;
+    width: 100%;
+}

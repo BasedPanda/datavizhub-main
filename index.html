@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Viz Hub</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="header">
+        <div class="logo">Data Viz Hub</div>
+        <input type="text" id="search-input" placeholder="Search videos...">
+        <button id="cart-button">Cart (0)</button>
+    </div>
+    <div class="main-container">
+        <div class="sidebar">
+            <ul>
+                <li class="active">Home</li>
+                <li>Recently Added</li>
+                <li>Categories</li>
+            </ul>
+        </div>
+        <div class="container">
+            <div id="video-gallery" class="gallery"></div>
+            <div id="loading-indicator" class="loading">Loading...</div>
+            <div id="error-message" class="error"></div>
+        </div>
+    </div>
+
+    <!-- Video Modal -->
+    <div id="video-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <video id="modal-video" controls></video>
+            <div id="video-info">
+                <h2 id="video-title"></h2>
+                <p id="video-description"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cart Modal -->
+    <div id="cart-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-cart">&times;</span>
+            <h2>Your Selected Videos</h2>
+            <div id="cart-items"></div>
+            <button id="proceed-to-form" class="checkout-btn">Proceed to Request Form</button>
+        </div>
+    </div>
+
+    <script src="scripts.js"></script>
+</body>
+</html>
