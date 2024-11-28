@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', function() {
-    const apiEndpoint = 'https://datavizhub.clowderframework.org/api/datasets/66461b63e4b01d098f2777e6/files';
-    const apiKey = '21335e14-10d2-4b97-8cdf-e661a4a7eee8';
+    const apiEndpoint = 'https://datavizhub.clowderframework.org/api/datasets/6557a87be4b08520ac408e92/files';
+    const apiKey = '1281ede1-d192-4fcf-9562-f73d6915ea70';  // using your extraction_key which has admin access
     const googleFormUrl = 'https://docs.google.com/forms/d/e/1FAIpQLScNi9NpdsSJcEnBvK37ZHSnxC7ocZ2XxNZjkYtoxHWyigsb-A/viewform';
     const videoTitleFieldId = 'entry.2027306240';
 
