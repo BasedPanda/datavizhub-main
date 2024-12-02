@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', function () {
-    const apiEndpoint = 'https://datavizhub.clowderframework.org/api/datasets/66461b63e4b01d098f2777e6/files'; // test viz hub
-    //const apiEndpoint = 'https://datavizhub.clowderframework.org/api/datasets/6557a87be4b08520ac408e92/files'; // Jeff's dataset
+    //const apiEndpoint = 'https://datavizhub.clowderframework.org/api/datasets/66461b63e4b01d098f2777e6/files'; // test viz hub
+    const apiEndpoint = 'https://datavizhub.clowderframework.org/api/datasets/6557a87be4b08520ac408e92/files'; // Jeff's dataset
     const apiKey = '21335e14-10d2-4b97-8cdf-e661a4a7eee8';
     const googleFormUrl = 'https://docs.google.com/forms/d/e/1FAIpQLScNi9NpdsSJcEnBvK37ZHSnxC7ocZ2XxNZjkYtoxHWyigsb-A/viewform';
 
