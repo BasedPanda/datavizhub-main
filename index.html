@@ -15,10 +15,10 @@
     <div class="main-container">
         <div class="container">
             <div class="info-message">
-                These videos are made for browsing purposes. If you want to gain a license to any of these, please 
-                add your choice of videos to the cart and fill out the ensuing google form. The AVL team will get 
-                in touch with you shortly. Hovering on media will show its preview while clicking on it will open 
-                a player where you can watch a low quality proof. 
+                These videos are made for browsing purposes. If you want to gain a license to any of these, please
+                add your choice of videos to the cart and fill out the ensuing google form. The AVL team will get
+                in touch with you shortly. Hovering on media will show its preview while clicking on it will open
+                a player where you can watch a low quality proof.
             </div>
             <div id="video-gallery" class="gallery"></div>
             <div id="loading-indicator" class="loading">Loading...</div>
@@ -36,7 +36,6 @@
             </video>
             <div id="video-info">
                 <h2 id="video-title"></h2>
-                <p id="video-description"></p>
             </div>
         </div>
     </div>
@@ -45,7 +44,10 @@
     <div id="cart-modal" class="modal">
         <div class="modal-content">
             <span class="close-cart">&times;</span>
-            <h2>Your Selected Videos</h2>
+            <div class="cart-header">
+                <h2>Your Selected Videos</h2>
+                <button id="clear-cart" class="btn-clear">Clear Cart</button>
+            </div>
             <div id="cart-items"></div>
             <button id="proceed-to-form" class="checkout-btn">Proceed to Request Form</button>
         </div>

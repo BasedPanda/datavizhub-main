@@ -1,9 +1,9 @@
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     const apiEndpoint = 'https://datavizhub.clowderframework.org/api/datasets/66461b63e4b01d098f2777e6/files'; // test viz hub
     //const apiEndpoint = 'https://datavizhub.clowderframework.org/api/datasets/6557a87be4b08520ac408e92/files'; // Jeff's dataset
     const apiKey = '21335e14-10d2-4b97-8cdf-e661a4a7eee8';
     const googleFormUrl = 'https://docs.google.com/forms/d/e/1FAIpQLScNi9NpdsSJcEnBvK37ZHSnxC7ocZ2XxNZjkYtoxHWyigsb-A/viewform';
-    
+
     const FORM_FIELDS = {
         videoTitles: 'entry.1000023',
         requestor: 'entry.1000020',
@@ -68,20 +68,20 @@ document.addEventListener('DOMContentLoaded', function() {
     async function createGalleryItem(item) {
         const galleryItem = document.createElement('div');
         galleryItem.className = 'gallery-item';
-    
+
         const thumbnailContainer = document.createElement('div');
         thumbnailContainer.className = 'thumbnail-container';
-    
+
         const loadingSpinner = document.createElement('div');
         loadingSpinner.className = 'spinner';
         thumbnailContainer.appendChild(loadingSpinner);
-    
+
         try {
             const previews = await getFilePreviews(item.id);
-            
+
             const thumbnailPreview = previews.find(p => p.p_id === "Thumbnail");
             const videoPreview = previews.find(p => p.p_id === "Video");
-    
+
             if (item.contentType.startsWith('video/')) {
                 if (videoPreview) {
                     const previewVideo = document.createElement('video');
@@ -91,32 +91,32 @@ document.addEventListener('DOMContentLoaded', function() {
                     previewVideo.loop = true;
                     previewVideo.playsInline = true;
                     previewVideo.crossOrigin = "anonymous";
-                    
+
                     previewVideo.onerror = () => {
                         console.error(`Failed to load video preview for ${item.filename}`);
                     };
-    
+
                     thumbnailContainer.appendChild(previewVideo);
-    
+
                     galleryItem.addEventListener('mouseenter', () => {
                         previewVideo.style.opacity = '1';
                         previewVideo.play().catch(e => console.log('Preview playback failed:', e));
                     });
-    
+
                     galleryItem.addEventListener('mouseleave', () => {
                         previewVideo.style.opacity = '0';
                         previewVideo.pause();
                         previewVideo.currentTime = 0;
                     });
                 }
-    
+
                 if (thumbnailPreview) {
                     const thumbnail = document.createElement('img');
                     thumbnail.src = `https://datavizhub.clowderframework.org${thumbnailPreview.pv_route}?key=${apiKey}`;
                     thumbnail.alt = item.filename;
                     thumbnail.className = 'thumbnail';
                     thumbnail.crossOrigin = "anonymous";
-                    
+
                     thumbnail.onerror = () => {
                         console.error(`Failed to load thumbnail for ${item.filename}`);
                         loadingSpinner.style.display = 'none';
@@ -125,12 +125,12 @@ document.addEventListener('DOMContentLoaded', function() {
                         errorMessage.textContent = 'Error loading thumbnail';
                         thumbnailContainer.appendChild(errorMessage);
                     };
-    
+
                     thumbnail.onload = () => {
                         console.log(`Successfully loaded thumbnail for ${item.filename}`);
                         loadingSpinner.style.display = 'none';
                     };
-                    
+
                     thumbnailContainer.appendChild(thumbnail);
                 }
             } else if (item.contentType.startsWith('image/')) {
@@ -140,7 +140,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     thumbnail.alt = item.filename;
                     thumbnail.className = 'thumbnail';
                     thumbnail.crossOrigin = "anonymous";
-                    
+
                     thumbnail.onerror = () => {
                         console.error(`Failed to load thumbnail for ${item.filename}`);
                         loadingSpinner.style.display = 'none';
@@ -149,25 +149,25 @@ document.addEventListener('DOMContentLoaded', function() {
                         errorMessage.textContent = 'Error loading thumbnail';
                         thumbnailContainer.appendChild(errorMessage);
                     };
-    
+
                     thumbnail.onload = () => {
                         console.log(`Successfully loaded thumbnail for ${item.filename}`);
                         loadingSpinner.style.display = 'none';
                     };
-                    
+
                     thumbnailContainer.appendChild(thumbnail);
                 }
             }
-    
+
             const title = document.createElement('h3');
             title.textContent = item.filename;
-    
+
             const addToCartBtn = document.createElement('button');
             addToCartBtn.className = 'cart-btn';
             addToCartBtn.textContent = cart.includes(item.id) ? 'Remove from Cart' : 'Add to Cart';
             addToCartBtn.dataset.id = item.id;
             if (cart.includes(item.id)) addToCartBtn.classList.add('in-cart');
-    
+
             addToCartBtn.onclick = (e) => {
                 e.stopPropagation();
                 if (!cart.includes(item.id)) {
@@ -181,51 +181,51 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 updateCartButton();
             };
-    
+
             galleryItem.appendChild(thumbnailContainer);
             galleryItem.appendChild(title);
             galleryItem.appendChild(addToCartBtn);
-    
+
             galleryItem.addEventListener('click', () => {
                 modal.style.display = 'block';
                 document.getElementById('video-title').textContent = item.filename;
-                
+
                 if (item.contentType.startsWith('video/')) {
                     modalVideo.style.display = 'block';
                     modalVideo.setAttribute('controlsList', 'nodownload');
-                    modalVideo.oncontextmenu = function(e) { 
-                        e.preventDefault(); 
-                        return false; 
+                    modalVideo.oncontextmenu = function (e) {
+                        e.preventDefault();
+                        return false;
                     };
                     modalVideo.controls = true;
                     modalVideo.playsInline = true;
-                    
+
                     if (videoPreview) {
                         modalVideo.src = `https://datavizhub.clowderframework.org${videoPreview.pv_route}?key=${apiKey}`;
                     }
-                    
+
                     modalVideo.play().catch(e => console.log('Modal playback failed:', e));
                     document.querySelector('.modal-image')?.remove();
                 } else if (item.contentType.startsWith('image/')) {
                     modalVideo.style.display = 'none';
                     let modalImage = document.querySelector('.modal-image');
-                    
+
                     if (!modalImage) {
                         modalImage = document.createElement('img');
                         modalImage.className = 'modal-image';
-                        modalImage.oncontextmenu = function(e) { 
-                            e.preventDefault(); 
-                            return false; 
+                        modalImage.oncontextmenu = function (e) {
+                            e.preventDefault();
+                            return false;
                         };
                         modalVideo.parentNode.insertBefore(modalImage, modalVideo);
                     }
-                    
+
                     if (thumbnailPreview) {
                         modalImage.src = `https://datavizhub.clowderframework.org${thumbnailPreview.pv_route}?key=${apiKey}`;
                     }
                 }
             });
-    
+
         } catch (error) {
             console.error('Error creating gallery item:', error);
             loadingSpinner.style.display = 'none';
@@ -234,7 +234,7 @@ document.addEventListener('DOMContentLoaded', function() {
             errorMessage.textContent = 'Error loading preview';
             thumbnailContainer.appendChild(errorMessage);
         }
-    
+
         return galleryItem;
     }
 
@@ -249,30 +249,30 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (item) {
                     const itemEl = document.createElement('div');
                     itemEl.className = 'cart-item';
-                    
+
                     const nameSpan = document.createElement('span');
                     nameSpan.textContent = item.filename;
-                    
+
                     const removeBtn = document.createElement('button');
                     removeBtn.textContent = 'Remove';
-                    
+
                     removeBtn.addEventListener('click', () => {
                         cart = cart.filter(cartId => cartId !== id);
                         itemEl.remove();
                         updateCartButton();
-                        
+
                         const cartBtn = document.querySelector(`.cart-btn[data-id="${id}"]`);
                         if (cartBtn) {
                             cartBtn.textContent = 'Add to Cart';
                             cartBtn.classList.remove('in-cart');
                         }
-                        
+
                         if (cart.length === 0) {
                             cartItems.innerHTML = '<p>Your cart is empty</p>';
                             proceedToForm.style.display = 'none';
                         }
                     });
-                    
+
                     itemEl.appendChild(nameSpan);
                     itemEl.appendChild(removeBtn);
                     cartItems.appendChild(itemEl);
@@ -288,15 +288,15 @@ document.addEventListener('DOMContentLoaded', function() {
             const item = videoData.find(v => v.id === id);
             return item ? item.filename.trim() : '';
         }).filter(title => title).join(', ');
-    
+
         let formUrl = googleFormUrl + '?';
         formUrl += `${FORM_FIELDS.videoTitles}=${encodeURIComponent(videoTitles)}`;
-        
+
         window.open(formUrl, '_blank');
     };
 
     document.querySelectorAll('.close, .close-cart').forEach(closeBtn => {
-        closeBtn.onclick = function() {
+        closeBtn.onclick = function () {
             modal.style.display = 'none';
             cartModal.style.display = 'none';
             modalVideo.pause();
@@ -304,7 +304,7 @@ document.addEventListener('DOMContentLoaded', function() {
         };
     });
 
-    window.onclick = function(event) {
+    window.onclick = function (event) {
         if (event.target == modal) {
             modal.style.display = 'none';
             modalVideo.pause();
@@ -314,7 +314,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
-    searchInput.addEventListener('input', function() {
+    searchInput.addEventListener('input', function () {
         const query = this.value.toLowerCase();
         const items = document.querySelectorAll('.gallery-item');
         items.forEach(item => {
@@ -330,10 +330,10 @@ document.addEventListener('DOMContentLoaded', function() {
     //     try {
     //         const response = await fetch(apiEndpoint, fetchOptions);
     //         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-            
+
     //         videoData = await response.json();
     //         gallery.innerHTML = '';
-            
+
     //         for (const item of videoData) {
     //             const galleryItem = await createGalleryItem(item);
     //             gallery.appendChild(galleryItem);
@@ -347,25 +347,122 @@ document.addEventListener('DOMContentLoaded', function() {
     //     }
     // }
 
+    // Add clear cart button functionality
+    document.getElementById('clear-cart').addEventListener('click', () => {
+        cart = [];
+        updateCartDisplay();
+        updateCartButton();
+        
+        // Add this new code to update all gallery buttons
+        const allCartButtons = document.querySelectorAll('.cart-btn');
+        allCartButtons.forEach(button => {
+            button.textContent = 'Add to Cart';
+            button.classList.remove('in-cart');
+        });
+    });
+
+    // Update the cart button display
+    function updateCartButton() {
+        cartButton.textContent = `Cart (${cart.length})`;
+        if (cart.length === 0) {
+            document.getElementById('proceed-to-form').style.display = 'none';
+        } else {
+            document.getElementById('proceed-to-form').style.display = 'block';
+        }
+    }
+
+    // Update the cart modal display
+    function updateCartDisplay() {
+        cartItems.innerHTML = '';
+        if (cart.length === 0) {
+            cartItems.innerHTML = '<p>Your cart is empty</p>';
+            proceedToForm.style.display = 'none';
+        } else {
+            cart.forEach(id => {
+                const item = videoData.find(v => v.id === id);
+                if (item) {
+                    createCartItem(item);
+                }
+            });
+            proceedToForm.style.display = 'block';
+        }
+    }
+
+    // Create individual cart items with thumbnails
+    async function createCartItem(item) {
+        const itemEl = document.createElement('div');
+        itemEl.className = 'cart-item';
+
+        // Get the thumbnail preview
+        const previews = await getFilePreviews(item.id);
+        const thumbnailPreview = previews.find(p => p.p_id === "Thumbnail");
+
+        // Create thumbnail image
+        const thumbnail = document.createElement('img');
+        thumbnail.className = 'cart-item-thumbnail';
+        thumbnail.src = thumbnailPreview ?
+            `https://datavizhub.clowderframework.org${thumbnailPreview.pv_route}?key=${apiKey}` :
+            'placeholder-image.jpg';
+        thumbnail.alt = item.filename;
+
+        // Create item details container
+        const details = document.createElement('div');
+        details.className = 'cart-item-details';
+
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'cart-item-name';
+        nameSpan.textContent = item.filename;
+
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'cart-item-remove';
+        removeBtn.textContent = 'Remove';
+
+        removeBtn.addEventListener('click', () => {
+            cart = cart.filter(cartId => cartId !== item.id);
+            updateCartDisplay();
+            updateCartButton();
+
+            // Update gallery button state
+            const cartBtn = document.querySelector(`.cart-btn[data-id="${item.id}"]`);
+            if (cartBtn) {
+                cartBtn.textContent = 'Add to Cart';
+                cartBtn.classList.remove('in-cart');
+            }
+        });
+
+        details.appendChild(nameSpan);
+        details.appendChild(removeBtn);
+
+        itemEl.appendChild(thumbnail);
+        itemEl.appendChild(details);
+        cartItems.appendChild(itemEl);
+    }
+
+    // Update the cart button click handler
+    cartButton.onclick = () => {
+        updateCartDisplay();
+        cartModal.style.display = 'block';
+    };
+
     async function fetchData() {
         loadingIndicator.style.display = 'block';
         errorMessage.style.display = 'none';
-    
+
         try {
             const response = await fetch(apiEndpoint, fetchOptions);
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-            
+
             videoData = await response.json();
             gallery.innerHTML = '';
-            
+
             // Create all gallery items in parallel
             const galleryItems = await Promise.all(
                 videoData.map(item => createGalleryItem(item))
             );
-            
+
             // Add all items to the gallery
             galleryItems.forEach(item => gallery.appendChild(item));
-            
+
         } catch (error) {
             console.error('Error:', error);
             errorMessage.textContent = error.message;
@@ -375,7 +472,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    document.addEventListener('keydown', function(e) {
+    document.addEventListener('keydown', function (e) {
         if (e.key === 's' && (e.ctrlKey || e.metaKey)) {
             e.preventDefault();
         }
